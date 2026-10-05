@@ -1,0 +1,58 @@
+name: Build APK
+
+on:
+  push:
+    branches: [main, master]
+    tags: ['v*']
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+
+      - uses: subosito/flutter-action@v2
+        with:
+          channel: stable
+          cache: true
+
+      - name: Create Android project
+        run: flutter create --platforms=android --org ir.roboram --project-name robobirthday _app
+
+      - name: Copy sources
+        run: |
+          rm -rf _app/lib _app/test
+          cp -r lib _app/lib
+          cp pubspec.yaml _app/pubspec.yaml
+
+      - name: Patch Android config (permissions, notifications, desugaring)
+        run: python3 tool/patch_android.py _app
+
+      - name: Get packages
+        working-directory: _app
+        run: flutter pub get
+
+      - name: Build release APK
+        working-directory: _app
+        run: flutter build apk --release
+
+      - name: Upload APK
+        uses: actions/upload-artifact@v4
+        with:
+          name: RoboBirthday-apk
+          path: _app/build/app/outputs/flutter-apk/app-release.apk
+
+      - name: Attach APK to GitHub Release (on tag)
+        if: startsWith(github.ref, 'refs/tags/v')
+        uses: softprops/action-gh-release@v2
+        with:
+          files: _app/build/app/outputs/flutter-apk/app-release.apk
