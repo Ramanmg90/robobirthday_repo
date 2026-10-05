@@ -25,7 +25,7 @@ Future<void> main() async {
 }
 
 // ───────────── helpers ─────────────
-String fa(num n) => n
+String fa(Object n) => n
     .toString()
     .replaceAllMapped(RegExp(r'\d'), (m) => '۰۱۲۳۴۵۶۷۸۹'[int.parse(m[0]!)]);
 String money(int n) => fa(n.toString().replaceAllMapped(
